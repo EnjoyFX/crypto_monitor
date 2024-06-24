@@ -13,6 +13,7 @@ from app.settings import cfg
 
 
 app = FastAPI()
+scheduler = AsyncIOScheduler()
 
 
 logging.basicConfig(level=logging.INFO)
@@ -121,7 +122,6 @@ async def analyze_currency_rates(period: str, db: AsyncSession = Depends(get_db)
 if __name__ == "__main__":
     now_is = datetime.now(timezone.utc)
     calc_start = (now_is + timedelta(seconds=60 - now_is.second)).replace(microsecond=0)
-    scheduler = AsyncIOScheduler()
     rates_trigger = IntervalTrigger(
         minutes=cfg.INTERVAL_IN_MINUTES,
         start_date=calc_start
