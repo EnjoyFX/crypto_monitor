@@ -2,6 +2,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import delete
+from sqlalchemy.sql import func
 from app.models import Currency, CurrencyRate, CurrencyRateAll
 from datetime import datetime
 
@@ -56,3 +57,8 @@ async def analyze_currency_rates(db: AsyncSession,
         CurrencyRate.timestamp.between(start_time, end_time))
     )
     return result.scalars().all()
+
+
+async def get_currency_rate_all_count(db: AsyncSession) -> int:
+    result = await db.execute(select(func.count(CurrencyRateAll.id)))
+    return result.scalar()

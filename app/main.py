@@ -97,6 +97,12 @@ async def delete_currency(symbol: str, db: AsyncSession = Depends(get_db)):
     return await crud.delete_currency(db=db, symbol=symbol)
 
 
+@app.get("/currency_rate_all/count", response_model=int)
+async def get_currency_rate_all_count(db: AsyncSession = Depends(get_db)):
+    count = await crud.get_currency_rate_all_count(db)
+    return count
+
+
 @app.get("/analysis/{period}", response_model=list[schemas.CurrencyRateCreate])
 async def analyze_currency_rates(period: str, db: AsyncSession = Depends(get_db)):
     end_time = datetime.now(timezone.utc)
