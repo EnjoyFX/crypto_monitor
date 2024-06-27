@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 origins = [
     "http://localhost",
     "http://localhost:8001",
-    "http://localhost:63342"
+    "http://localhost:63342",
+    "http://192.168.0.60:8001"
 ]
 
 app.add_middleware(
