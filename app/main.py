@@ -1,5 +1,7 @@
 import logging
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -18,6 +20,21 @@ scheduler = AsyncIOScheduler()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# CORS support
+origins = [
+    "http://localhost",
+    "http://localhost:8001",
+    "http://localhost:63342"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 async def init_models():
@@ -122,6 +139,28 @@ async def analyze_currency_rates(period: str, db: AsyncSession = Depends(get_db)
     rates = await crud.analyze_currency_rates(db,
                                               start_time=start_time,
                                               end_time=end_time)
+    return rates
+
+
+@app.get("/rates/{symbol}", response_model=list[schemas.CurrencyRateCreate])
+async def get_exchange_rates(symbol: str, periods: int, db: AsyncSession = Depends(get_db)):
+    query = text("""
+        SELECT symbol, price, timestamp
+        FROM currency_rates_all
+        WHERE symbol = :symbol
+        ORDER BY timestamp DESC
+        LIMIT :periods
+    """)
+
+    rates = await db.execute(query, {'symbol': symbol, 'periods': periods})
+    rows = rates.fetchall()
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="Symbol not found")
+
+    rates = [schemas.CurrencyRateCreate(symbol=row[0],
+                                        price=row[1],
+                                        timestamp=row[2]) for row in rows]
     return rates
 
 
