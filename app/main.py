@@ -1,5 +1,5 @@
 import logging
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 origins = [
     "http://localhost",
     "http://localhost:8001",
+    "http://localhost:8002",
     "http://localhost:63342",
     "http://192.168.0.60:8001"
 ]
@@ -36,6 +37,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers['X-Content-Type-Options'] = "nosniff"
+    if 'server' in response.headers:
+        del response.headers['server']
+    return response
+
+
+@app.middleware("http")
+async def check_user_agent(request: Request, call_next):
+    user_agent = request.headers.get('user-agent')
+    if not user_agent or "fuzzer" in user_agent.lower():
+        raise HTTPException(status_code=400, detail="Invalid User-Agent")
+    response = await call_next(request)
+    return response
 
 
 async def init_models():
@@ -176,4 +195,4 @@ if __name__ == "__main__":
     scheduler.add_job(fetch_and_store_rates, trigger=rates_trigger)
     logger.info("Job added to scheduler.")
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    uvicorn.run(app, host="0.0.0.0", port=8002)
